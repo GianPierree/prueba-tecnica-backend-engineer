@@ -18,4 +18,18 @@ export class CardIssueRepository implements ICardIssueRepository {
     this.cardIssues.set(newCardIssue.id, newCardIssue);
     return newCardIssue;
   }
+
+  async updateStatus(id: string, status: string): Promise<ICardIssue> {
+    const card = this.cardIssues.get(id);
+    
+    if (!card) {
+      console.warn(`Card with id ${id} not found`);
+      throw new Error(`Card with id ${id} not found`);
+    }
+
+    card.status = status;
+    this.cardIssues.set(id, card);
+    
+    return card;
+  }
 }

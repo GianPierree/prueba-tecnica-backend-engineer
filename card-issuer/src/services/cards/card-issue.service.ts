@@ -37,18 +37,7 @@ export class CardIssueService implements ICardIssueService {
       this.logger.info(`Card issue created successfully: ${result.id}`);
 
       if (result) {
-        const payload: IKafkaCloudEvent<ICardIssuePayload> = {
-          id: crypto.randomUUID(),
-          source: '/card-issue',
-          data: {
-            cardId: result.id,
-            status: result.status,
-          },
-          type: KAFKA_TOPICS.CARD_REQUESTED,
-          time: new Date().toISOString(),
-          specversion: '1.0',
-        };
-        this.kafkaEventBrokerProvider.publish<ICardIssuePayload>(KAFKA_TOPICS.CARD_REQUESTED, payload);
+        this.publishCardRequested(result);
       }
 
       return {
@@ -59,5 +48,21 @@ export class CardIssueService implements ICardIssueService {
       this.logger.error(`Error creating card issue: ${(error as Error).message}`);
       throw error;
     }
+  }
+
+  private publishCardRequested({ id, status, forceError }: ICardIssue): void {
+    const payload: IKafkaCloudEvent<ICardIssuePayload> = {
+      id: crypto.randomUUID(),
+      source: '/services/cards/card-issuer',
+      data: {
+        cardId: id,
+        status,
+        forceError: forceError ?? false,
+      },
+      type: KAFKA_TOPICS.CARD_REQUESTED,
+      time: new Date().toISOString(),
+      specversion: '1.0',
+    };
+    this.kafkaEventBrokerProvider.publish<ICardIssuePayload>(KAFKA_TOPICS.CARD_REQUESTED, payload);
   }
 }

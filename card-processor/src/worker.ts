@@ -1,39 +1,44 @@
 import 'reflect-metadata';
+
 import { container } from './configs/inversify.config';
 import { TYPES } from './types';
 import { IKafkaEventConsumer } from './interfaces/kafka/kafka-event-consumer.interface';
 import { KAFKA_TOPICS } from './shared/constants';
+import { EventDispatcher } from './events/dispatcher/dispatcher.event';
+import { CardRequestedHandler } from './events/handlers/card-requested.handler';
+import { IKafkaEventBroker } from './interfaces/kafka/kafka-event-broker.interface';
 
 async function bootstrapConsumer() {
   const kafkaConsumer = container.get<IKafkaEventConsumer>(TYPES.KafkaEventConsumerProvider);
+  const kafkaBroker = container.get<IKafkaEventBroker>(TYPES.KafkaEventBrokerProvider);
+
+  const eventDispatcher = container.get<EventDispatcher>(TYPES.EventDispatcher);
+
+  // Register event handlers
+  const cardRequestedHandler = container.get<CardRequestedHandler>(TYPES.CardRequestedHandler);
+  eventDispatcher.register(KAFKA_TOPICS.CARD_REQUESTED, cardRequestedHandler);
 
   try {
     await kafkaConsumer.connect();
+    await kafkaBroker.connect();
 
-    const handleCardRequested = async (cloudEventPayload: any) => {
-      console.log(`\n📨 Nuevo evento recibido! ID: ${cloudEventPayload.id}`);
-      console.log(`Contexto: ${cloudEventPayload.source}`);
-      console.log(`Datos de la tarjeta:`, cloudEventPayload.data);
-
-      // Aquí llamarías a tu servicio de dominio (ej. CardProcessorService)
-      // await cardProcessorService.processNewCard(cloudEventPayload.data);
-    };
-
-    await kafkaConsumer.subscribeAndListen(KAFKA_TOPICS.CARD_REQUESTED, handleCardRequested);
-    console.log(`🎧 Escuchando mensajes en el tópico: ${KAFKA_TOPICS.CARD_REQUESTED}`);
+    const topicsToListen = [KAFKA_TOPICS.CARD_REQUESTED];
+    
+    await kafkaConsumer.startListening(topicsToListen);
 
   } catch (error) {
     console.error('❌ Error iniciando el consumidor:', error);
     process.exit(1);
   }
 
-  const gracefulShutdown = async () => {
+  const shutdown = async () => {
     await kafkaConsumer.disconnect();
+    await kafkaBroker.disconnect();
     process.exit(0);
   };
 
-  process.on('SIGINT', gracefulShutdown);
-  process.on('SIGTERM', gracefulShutdown);
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 bootstrapConsumer();

@@ -25,6 +25,7 @@ export interface ICardIssue {
 
 export interface ICardIssueRepository {
   save(cardIssue: Omit<ICardIssue, 'id' | 'status'>): Promise<ICardIssue>;
+  updateStatus(id: string, status: string): Promise<ICardIssue>;
 }
 
 export interface ICardIssueService {
@@ -34,4 +35,13 @@ export interface ICardIssueService {
 export interface ICardIssuePayload {
   cardId: string;
   status: string;
+  forceError?: boolean;
+}
+
+export interface ICardEmissionPayload {
+  cardIssuerId: string;
+  id: string;
+  cardNumber: string;
+  expirationDate: string;
+  cvv: string;
 }
