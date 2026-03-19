@@ -3,6 +3,7 @@ import pino from 'pino';
 import { injectable } from 'inversify';
 
 import { IKafkaEventBroker } from '../../interfaces/kafka/kafka-event-broker.interface';
+import { IKafkaCloudEvent } from '../../interfaces/kafka/kafka-cloud-event.interface';
 
 @injectable()
 export class KafkaEventBrokerProvider implements IKafkaEventBroker {
@@ -37,7 +38,7 @@ export class KafkaEventBrokerProvider implements IKafkaEventBroker {
     }
   }
 
-  async publish(topic: string, payload: any): Promise<void> {
+  async publish<T>(topic: string, payload: IKafkaCloudEvent<T>): Promise<void> {
     try {
       await this.producer.send({
         topic,
@@ -45,7 +46,7 @@ export class KafkaEventBrokerProvider implements IKafkaEventBroker {
           { value: JSON.stringify(payload) },
         ],
       });
-      this.logger.info(`Event published to topic [${topic}]`);
+      this.logger.info(`Event published to topic [${topic}]: ${payload.id}`);
     } catch (error) {
       this.logger.error(`Failed to publish event to topic [${topic}]: ${(error as Error).message}`);
       throw error;

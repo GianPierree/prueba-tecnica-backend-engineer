@@ -4,10 +4,12 @@ import pino from 'pino';
 import { TYPES } from '../../types';
 import {
   ICardIssue,
+  ICardIssuePayload,
   ICardIssueRepository,
   ICardIssueService,
 } from '../../interfaces/cards/card-issue.interface';
 import { IKafkaEventBroker } from '../../interfaces/kafka/kafka-event-broker.interface';
+import { IKafkaCloudEvent } from '../../interfaces/kafka/kafka-cloud-event.interface';
 import { KAFKA_TOPICS } from '../../shared/constants';
 
 @injectable()
@@ -35,17 +37,18 @@ export class CardIssueService implements ICardIssueService {
       this.logger.info(`Card issue created successfully: ${result.id}`);
 
       if (result) {
-        const payload = {
-          id: 1,
-          source: crypto.randomUUID(),
+        const payload: IKafkaCloudEvent<ICardIssuePayload> = {
+          id: crypto.randomUUID(),
+          source: '/card-issue',
           data: {
             cardId: result.id,
             status: result.status,
           },
           type: KAFKA_TOPICS.CARD_REQUESTED,
-          date: new Date().toISOString(),
+          time: new Date().toISOString(),
+          specversion: '1.0',
         };
-        this.kafkaEventBrokerProvider.publish(KAFKA_TOPICS.CARD_REQUESTED, payload);
+        this.kafkaEventBrokerProvider.publish<ICardIssuePayload>(KAFKA_TOPICS.CARD_REQUESTED, payload);
       }
 
       return {

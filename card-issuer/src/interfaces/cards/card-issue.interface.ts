@@ -30,3 +30,8 @@ export interface ICardIssueRepository {
 export interface ICardIssueService {
   create(cardIssue: Omit<ICardIssue, 'id' | 'status'>): Promise<Pick<ICardIssue, 'id' | 'status'>>;
 }
+
+export interface ICardIssuePayload {
+  cardId: string;
+  status: string;
+}
